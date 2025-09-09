@@ -145,6 +145,16 @@ if mode == "Single File" and st.session_state['single_result']:
         st.error(msg)
     for line in info.split("\n"):
         st.info(line)
+    # Display response as JSON
+    if success:
+        import json
+        resp = st.session_state['single_result'][0]
+        try:
+            # Try to pretty print the JSON part of the message
+            resp_json = response.json()
+            st.json(resp_json)
+        except Exception:
+            pass
 elif mode == "Multiple Files" and st.session_state['results']:
     st.write("## Results")
     st.table([
@@ -157,6 +167,11 @@ elif mode == "Multiple Files" and st.session_state['results']:
             "Response": r["response"]
         } for r in st.session_state['results']
     ])
+    # Display each response as JSON
+    import json
+    for r in st.session_state['results']:
+        if r['status'] == 'Success' and isinstance(r['response'], dict):
+            st.json(r['response'])
 
 if st.button("Ping API"):
     response = requests.get("http://localhost:8000/ping")
