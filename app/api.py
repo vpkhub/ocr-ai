@@ -7,6 +7,7 @@ import tempfile
 from typing import Optional
 from PIL import Image
 import fitz  # PyMuPDF
+import time
 
 router = APIRouter()
 
@@ -26,11 +27,13 @@ def ping():
 
 @router.post("/upload-document")
 async def upload_document(payload: DocumentPayload):
+    api_start = time.time()
     try:
         file_bytes = base64.b64decode(payload.document)
         temp_dir = os.path.join(tempfile.gettempdir(), "ocr_ai_uploads")
         os.makedirs(temp_dir, exist_ok=True)
 
+        service_start = time.time()
         # Try to detect if it's a PDF (by header)
         if file_bytes[:4] == b'%PDF':
             # Convert PDF to images using PyMuPDF (fitz)
@@ -42,13 +45,28 @@ async def upload_document(payload: DocumentPayload):
                 filename = f"{payload.documenttype}_page{idx+1}.png"
                 path = save_image(img, temp_dir, filename)
                 saved_files.append(path)
-            return {"status": "success", "saved_images": saved_files}
+            service_time = time.time() - service_start
+            api_time = time.time() - api_start
+            return {
+                "status": "success",
+                "saved_images": saved_files,
+                "service_time": service_time,
+                "api_time": api_time
+            }
         else:
             # Assume it's an image
             from io import BytesIO
             img = Image.open(BytesIO(file_bytes))
             filename = f"{payload.documenttype}_uploaded.png"
             path = save_image(img, temp_dir, filename)
-            return {"status": "success", "saved_image": path}
+            service_time = time.time() - service_start
+            api_time = time.time() - api_start
+            return {
+                "status": "success",
+                "saved_image": path,
+                "service_time": service_time,
+                "api_time": api_time
+            }
     except Exception as e:
-        return JSONResponse(content={"status": "error", "detail": str(e)}, status_code=400)
+        api_time = time.time() - api_start
+        return JSONResponse(content={"status": "error", "detail": str(e), "api_time": api_time}, status_code=400)
