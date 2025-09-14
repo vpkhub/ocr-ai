@@ -1,6 +1,10 @@
 import streamlit as st
+
+
 import requests
 import base64
+import uuid
+from ocr_validation import ocr_validation_ui
 
 
 
@@ -34,9 +38,12 @@ def upload_multiple_files(files, doc_type):
     for idx, uploaded_file in enumerate(files):
         file_bytes = uploaded_file.read()
         encoded_file = base64.b64encode(file_bytes).decode("utf-8")
+        documentid = str(uuid.uuid4())
+        st.info(f"Document ID for {uploaded_file.name}: {documentid}")
         payload = {
             "documenttype": doc_type,
-            "document": encoded_file
+            "document": encoded_file,
+            "documentid": documentid
         }
         start_time = time.time()
         response = requests.post("http://localhost:8000/upload-document", json=payload)
@@ -55,7 +62,8 @@ def upload_multiple_files(files, doc_type):
             "response_time": elapsed,
             "api_time": api_time,
             "service_time": service_time,
-            "response": resp_json
+            "response": resp_json,
+            "documentid": documentid
         })
         progress_bar.progress((idx + 1) / total)
     progress_bar.empty()
@@ -64,9 +72,11 @@ def upload_multiple_files(files, doc_type):
 def upload_single_file(file, doc_type):
     file_bytes = file.read()
     encoded_file = base64.b64encode(file_bytes).decode("utf-8")
+    documentid = str(uuid.uuid4())
     payload = {
         "documenttype": doc_type,
-        "document": encoded_file
+        "document": encoded_file,
+        "documentid": documentid
     }
     start_time = time.time()
     response = requests.post("http://localhost:8000/upload-document", json=payload)
@@ -78,7 +88,7 @@ def upload_single_file(file, doc_type):
     else:
         api_time = None
         service_time = None
-    return response, elapsed, api_time, service_time
+    return response, elapsed, api_time, service_time, documentid
 
 
 
@@ -102,18 +112,23 @@ with col1:
         if uploaded_file is not None:
             st.write(f"**Selected:** {uploaded_file.name}")
             st.write(f"**Document type:** {doc_type}")
+            # Generate and display documentid for this upload
+            if 'single_docid' not in st.session_state or st.session_state['single_key'] != st.session_state.get('last_single_key', -1):
+                st.session_state['single_docid'] = str(uuid.uuid4())
+                st.session_state['last_single_key'] = st.session_state['single_key']
+            st.info(f"Document ID: {st.session_state['single_docid']}")
             submit = st.button("Submit File")
             if submit:
-                response, elapsed, api_time, service_time = upload_single_file(uploaded_file, doc_type)
+                response, elapsed, api_time, service_time, documentid = upload_single_file(uploaded_file, doc_type)
                 if response.status_code == 200:
                     st.session_state['single_result'] = (
                         f"Upload successful: {response.json()}",
-                        f"API response time: {elapsed:.2f} seconds\nAPI function time: {api_time:.2f} s\nService function time: {service_time:.2f} s",
+                        f"API response time: {elapsed:.2f} seconds\nAPI function time: {api_time:.2f} s\nService function time: {service_time:.2f} s\nDocument ID: {documentid}",
                         True)
                 else:
                     st.session_state['single_result'] = (
                         f"Upload failed: {response.text}",
-                        f"API response time: {elapsed:.2f} seconds",
+                        f"API response time: {elapsed:.2f} seconds\nDocument ID: {documentid}",
                         False)
     elif mode == "Multiple Files":
         uploaded_files = st.file_uploader("Upload files", type=["pdf", "png", "jpg", "jpeg"], accept_multiple_files=True, key=st.session_state['multi_key'])
@@ -134,6 +149,8 @@ with st.sidebar:
         st.session_state['single_result'] = None
         st.session_state['single_key'] += 1
         st.session_state['multi_key'] += 1
+        # Also clear validation section state
+        st.session_state['ocr_validation_open'] = False
         st.rerun()
 
 # Show results
@@ -167,11 +184,35 @@ elif mode == "Multiple Files" and st.session_state['results']:
             "Response": r["response"]
         } for r in st.session_state['results']
     ])
-    # Display each response as JSON
+    # Display each response as JSON and collect for download
     import json
+    all_responses = []
     for r in st.session_state['results']:
         if r['status'] == 'Success' and isinstance(r['response'], dict):
             st.json(r['response'])
+            all_responses.append(r['response'])
+    if all_responses:
+        json_str = json.dumps(all_responses, indent=2)
+        st.download_button("Download All API Responses as JSON", data=json_str, file_name="ocr_api_responses.json", mime="application/json")
+
+
+
+# --- OCR Validation Section ---
+if 'ocr_validation_open' not in st.session_state:
+    st.session_state['ocr_validation_open'] = False
+
+def open_ocr_validation():
+    st.session_state['ocr_validation_open'] = True
+
+
+# --- OCR Validation Section ---
+with st.sidebar:
+    open_val = st.button("Open OCR Validation Tool")
+    if open_val:
+        open_ocr_validation()
+
+if st.session_state['ocr_validation_open']:
+    ocr_validation_ui()
 
 if st.button("Ping API"):
     response = requests.get("http://localhost:8000/ping")

@@ -1,0 +1,20 @@
+[
+{
+  "document_id": "DOC12345",
+  "status": "success",
+  "extracted_fields": [
+    {"field_name": "name", "value": "John Doe", "confidence_score": 0.97},
+    {"field_name": "dateofbirth", "value": "01/01/1990", "confidence_score": 0.92},
+    {"field_name": "ic", "value": "A123456", "confidence_score": 0.95}
+  ]
+},
+{
+  "document_id": "DOC12346",
+  "status": "success",
+  "extracted_fields": [
+    {"field_name": "name", "value": "Spiderman", "confidence_score": 0.97},
+    {"field_name": "dateofbirth", "value": "14/02/1991", "confidence_score": 0.92},
+    {"field_name": "ic", "value": "A001017", "confidence_score": 0.95}
+  ]
+}
+]
