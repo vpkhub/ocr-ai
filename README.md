@@ -27,3 +27,7 @@
    ```
 
 4. Use the Streamlit UI to interact with the FastAPI backend.
+
+5. docker build -t ocr-ai .
+docker run -p 8000:8000 -p 8501:8501 ocr-ai
+
