@@ -1,5 +1,6 @@
-fastapi
-uvicorn
-streamlit
-requests
-pymupdf
+fastapi==0.110.2
+uvicorn==0.29.0
+streamlit==1.35.0
+requests==2.31.0
+pymupdf==1.24.2
+pandas==2.2.2

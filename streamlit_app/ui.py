@@ -6,7 +6,7 @@ import base64
 import uuid
 from ocr_validation import ocr_validation_ui
 
-
+st.title("Dara OCR-AI Document Uploader")
 
 st.markdown("""
 <h1 style='text-align: center; color: #4F8BF9;'>OCR-AI Document Uploader</h1>
@@ -142,6 +142,7 @@ with col1:
 
 # Move Clear Results button to sidebar
 with st.sidebar:
+    st.image("validation/sls_logo.gif", caption="SLS Logo", use_container_width=True)
     st.markdown("## Actions")
     clear = st.button("Clear Results", type="primary")
     if clear:
@@ -162,14 +163,15 @@ if mode == "Single File" and st.session_state['single_result']:
         st.error(msg)
     for line in info.split("\n"):
         st.info(line)
-    # Display response as JSON
+    # Display response as JSON and add download button
     if success:
         import json
         resp = st.session_state['single_result'][0]
         try:
-            # Try to pretty print the JSON part of the message
             resp_json = response.json()
             st.json(resp_json)
+            json_str = json.dumps(resp_json, indent=2)
+            st.download_button("Download API Response as JSON", data=json_str, file_name="single_api_response.json", mime="application/json")
         except Exception:
             pass
 elif mode == "Multiple Files" and st.session_state['results']:

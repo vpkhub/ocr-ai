@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -87,3 +86,7 @@ async def upload_document(payload: DocumentPayload):
         api_time = time.time() - api_start
         print(f"error: {e}")
         return JSONResponse(content={"status": "error", "detail": str(e), "api_time": api_time}, status_code=400)
+
+@router.get("/healthcheck")
+async def healthcheck():
+    return {"status": "ok"}
